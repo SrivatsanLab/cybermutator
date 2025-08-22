@@ -127,7 +127,7 @@ def main():
     parser.add_argument("--seed", type=float)
     parser.add_argument("--name", type=str, default="cybermutator")
     parser.add_argument("--Mu", type=float, default=2e-6)
-    parser.add_argument("--sbs_signatures", nargs="+", default=["./v3.3_SBS10a_PROFILE.txt", "./v3.3_SBS10b_PROFILE.txt"])
+    parser.add_argument("--sbs_signatures", nargs="+", default=["cybermutator/SBS/v3.3_SBS10a_PROFILE.txt", "cybermutator/SBS/v3.3_SBS10b_PROFILE.txt"])
     parser.add_argument("--sbs_weights", nargs="+", type=float, default=[0.5, 0.5])
     parser.add_argument("--outdir", type=str, required=True)
     args = parser.parse_args()
