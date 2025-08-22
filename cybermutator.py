@@ -113,26 +113,40 @@ def plot_VAF(vafs, outpath):
     plt.savefig(outpath)
 
 def main():
-    parser = argparse.ArgumentParser(description="cybermutator helps you create your own cybermutator to simulate a hypermutator")
-    parser.add_argument("--genome", type=str, required=True)
-    parser.add_argument("--genome_fasta", type=str, required=True)
-    parser.add_argument("--regions", nargs="+", type=parse_region, required=True)
-    parser.add_argument("--sbs_signatures", nargs="+", default=["./v3.3_SBS10a_PROFILE.txt", "./v3.3_SBS10b_PROFILE.txt"])
-    parser.add_argument("--sbs_weights", nargs="+", type=float, default=[0.5, 0.5])
-    parser.add_argument("--outdir", type=str, required=True)
-    parser.add_argument("--name", type=str, default="cybermutator")
-    parser.add_argument("--Mu", type=float, default=2e-6)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--sequence", type=str)
+    parser.add_argument("--seq_len", type=int)
+    parser.add_argument("--genome", type=str, default="mm10")
+    parser.add_argument("--genome_fasta", type=str)
+    parser.add_argument("--regions", nargs="+", type=parse_region)
+    parser.add_argument("--growth_model", type=str, default="exponential")
+    parser.add_argument("--coalescent_model", type=str, default="hudson")
+    parser.add_argument("--time", type=int, default=30)
     parser.add_argument("--N0", type=int, default=100)
     parser.add_argument("--Nt", type=int, default=10000)
-    parser.add_argument("--time", type=int, default=30)
-    parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--seed", type=float)
+    parser.add_argument("--name", type=str, default="cybermutator")
+    parser.add_argument("--Mu", type=float, default=2e-6)
+    parser.add_argument("--signature", type=str, default="./v3.3_SBS10a_PROFILE.txt")
+    parser.add_argument("--outdir", type=str, required=True)
     args = parser.parse_args()
 
-    os.makedirs(args.outdir, exist_ok=True)
-    seed = args.seed or int(time.time())
-    np.random.seed(seed)
+    if args.seed is None:
+        args.seed = time.time()
 
-    sequence, coordmap = load_reference_sequence(args.genome_fasta, args.regions)
+    nucleotides = list("ACGT")
+    probs = {"mm10": [0.21, 0.21, 0.29, 0.29]}  # default GC content
+
+    if args.sequence:
+        sequence = args.sequence
+    elif args.regions and args.genome_fasta:
+        sequence, coordmap = load_reference_sequence(args.genome_fasta, args.regions)
+    elif args.seq_len:
+        p = probs.get(args.genome, [0.25]*4)
+        sequence = "".join(np.random.choice(nucleotides, p=p, size=args.seq_len + 2))
+    else:
+        raise ValueError("Must provide either --sequence or --regions + --genome_fasta or --seq_len")
+
     ts = msprime.sim_ancestry(samples=25, sequence_length=len(sequence), recombination_rate=0, ploidy=2, random_seed=seed)
     ts, trinucs = add_context(ts, sequence)
     transition_matrix = load_signatures(args.sbs_signatures, args.sbs_weights, args.genome)
