@@ -113,7 +113,7 @@ def plot_VAF(vafs, outpath):
     plt.savefig(outpath)
 
 def main():
-    parser = argparse.ArgumentParser(description="Cybermutator: Simulate context-aware somatic mutations")
+    parser = argparse.ArgumentParser(description="cybermutator helps you create your own cybermutator to simulate a hypermutator")
     parser.add_argument("--genome", type=str, required=True)
     parser.add_argument("--genome_fasta", type=str, required=True)
     parser.add_argument("--regions", nargs="+", type=parse_region, required=True)
