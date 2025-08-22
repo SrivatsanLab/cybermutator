@@ -147,7 +147,7 @@ def main():
     else:
         raise ValueError("Must provide either --sequence or --regions + --genome_fasta or --seq_len")
 
-    ts = msprime.sim_ancestry(samples=25, sequence_length=len(sequence), recombination_rate=0, ploidy=2, random_seed=seed)
+    ts = msprime.sim_ancestry(samples=25, sequence_length=len(sequence), recombination_rate=0, ploidy=2, random_seed=args.seed)
     ts, trinucs = add_context(ts, sequence)
     transition_matrix = load_signatures(args.sbs_signatures, args.sbs_weights, args.genome)
     ts_mut = simulate_mutations(ts, sequence, trinucs, transition_matrix, mu=args.Mu)
