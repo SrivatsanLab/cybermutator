@@ -1,4 +1,4 @@
-![A cybermutator mouse](/cybermutator_mouse.png)
+![A cybermutator mouse](assets/cybermutator_mouse.png)
 
 ### **`cybermutator.py`** helps you create your own cybermutator to simulate a hypermutator. 
 
