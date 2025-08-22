@@ -10,6 +10,10 @@ import argparse
 import os
 import time
 
+## TODO:
+#       - add additional SBS signatures
+#       - test with multiple SBS signatures
+
 @dataclass
 class GenomicRegion:
     chrom: str
