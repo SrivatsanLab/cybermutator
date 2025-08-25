@@ -130,45 +130,48 @@ def plot_VAF(vafs, outpath):
     plt.savefig(outpath)
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description='Create your own cybermutator to simulate a hypermutator.')
     parser.add_argument("--cells", type=int, default=1000,
-                        )
+                        help='The number of cells in your simulated sample')
     parser.add_argument("--sequence", type=str,
-                        )
+                        help='Optional: the sequence you would like to simulate mutations on. Leave empty to randomly generate a sequence, or query a ref genome for a sequence.')
     parser.add_argument("--seq_len", type=int,
-                        )
+                        help='Length of randomly generated sequence to simulate mutations on.')
     parser.add_argument("--genome", type=str, default="mm10",
-                        )
+                        help='Specify genome to generate random sequence with appropriate GC content. Currently only mm10 is supported')
     parser.add_argument("--genome_fasta", type=str,
-                        )
+                        help='Path to indexed fasta to query ')
     parser.add_argument("--regions", nargs="+", type=parse_region,
-                        )
+                        help='region or list of regions (separated by a space) of provided reference genome to simulate mutations within, in the following format: chr1:200-300')
     parser.add_argument("--growth_model", type=str, default="exponential",
-                        )
+                        help='currently only exponential is supported')
     parser.add_argument("--coalescent_model", type=str, default="hudson",
-                        )
+                        help='Model provided to msprime.sim_ancestry')
     parser.add_argument("--time", type=int, default=30,
-                        )
-    parser.add_argument("--N0", type=int, default=100,
-                        )
+                        help='Number of simulated generations / cell divisions')
+    parser.add_argument("--N0", type=int, default=1,
+                        help='Founder population size (use 1 to simulate development from a single cell zygote)')
     parser.add_argument("--Nt", type=int, default=10000,
-                        )
+                        help='Population size at time of simulated sampling.')
     parser.add_argument("--seed", type=float,
-                        )
-    parser.add_argument("--name", type=str, default="cybermutator",
-                        )
+                        help='seed for random number generation. Defaults to current time if none provided.')
     parser.add_argument("--Mu", type=float, default=2e-6,
-                        )
+                        help='Overall mutation rate.')
     parser.add_argument("--sbs_signatures", nargs="+", default=["cybermutator/SBS/v3.3_SBS10a_PROFILE.txt", "cybermutator/SBS/v3.3_SBS10b_PROFILE.txt"],
-                        )
+                        help='Path or list of paths to COSMIC SBS signatures in default tsv format. The two PolE-P286R signatures (SBS10a and SBS10b) are provided.')
     parser.add_argument("--sbs_weights", nargs="+", type=float, default=[0.5, 0.5],
-                        )
-    parser.add_argument("--outdir", type=str, required=True,
-                        )
+                        help='SBS signature weights, used if multiple signatures provided.')
+    parser.add_argument("--outdir", type=str, default='cybermutator_results',
+                        help='Directory for outputs. Will be created if it does not exist')
+    parser.add_argument("--name", type=str, default="cybermutator",
+                        help='name for your simulation, will be the prefix of output files.')
     args = parser.parse_args()
 
     if args.seed is None:
         args.seed = time.time()
+
+    if not os.path.exists(args.outdir):
+        os.makedir(args.outdir)
 
     nucleotides = list("ACGT")
     probs = {"mm10": [0.21, 0.21, 0.29, 0.29]}  # default GC content
