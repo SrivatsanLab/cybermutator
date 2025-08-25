@@ -96,13 +96,30 @@ def simulate_mutations(ts, sequence, trinucs, transition_matrix, mu):
 def compute_VAF(ts):
     records = []
     for var in ts.variants():
+        site = var.site.position
         anc = var.site.ancestral_state
-        der = [a for a in var.alleles if a != anc][0]
-        anc_count = np.sum(var.genotypes == var.alleles.index(anc))
-        der_count = np.sum(var.genotypes == var.alleles.index(der))
-        vaf = der_count / (anc_count + der_count)
-        records.append([var.site.position, anc, der, anc_count, der_count, vaf])
-    return pd.DataFrame(records, columns=["site", "anc", "der", "anc_count", "der_count", "VAF"])
+        allele_counts = np.bincount(var.genotypes, minlength=len(var.alleles))
+        total_alleles = allele_counts.sum()
+        der = [a for a in var.alleles if a != anc]
+        if len(der) == 0:
+            continue
+        else: 
+            for a in der:
+                der_count = np.sum(var.genotypes == var.alleles.index(a))
+                anc_count = total_alleles - der_count
+                vaf = der_count / total_alleles
+                records.append([
+                    site,
+                    anc,
+                    anc_count,
+                    a,
+                    der_count,
+                    vaf
+                ])
+    return pd.DataFrame(
+        records,
+        columns=["site", "anc", "anc_count", "der", "der_count", "VAF"]
+    )
 
 def plot_VAF(vafs, outpath):
     plt.figure()
@@ -114,22 +131,40 @@ def plot_VAF(vafs, outpath):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--sequence", type=str)
-    parser.add_argument("--seq_len", type=int)
-    parser.add_argument("--genome", type=str, default="mm10")
-    parser.add_argument("--genome_fasta", type=str)
-    parser.add_argument("--regions", nargs="+", type=parse_region)
-    parser.add_argument("--growth_model", type=str, default="exponential")
-    parser.add_argument("--coalescent_model", type=str, default="hudson")
-    parser.add_argument("--time", type=int, default=30)
-    parser.add_argument("--N0", type=int, default=100)
-    parser.add_argument("--Nt", type=int, default=10000)
-    parser.add_argument("--seed", type=float)
-    parser.add_argument("--name", type=str, default="cybermutator")
-    parser.add_argument("--Mu", type=float, default=2e-6)
-    parser.add_argument("--sbs_signatures", nargs="+", default=["cybermutator/SBS/v3.3_SBS10a_PROFILE.txt", "cybermutator/SBS/v3.3_SBS10b_PROFILE.txt"])
-    parser.add_argument("--sbs_weights", nargs="+", type=float, default=[0.5, 0.5])
-    parser.add_argument("--outdir", type=str, required=True)
+    parser.add_argument("--cells", type=int, default=1000,
+                        )
+    parser.add_argument("--sequence", type=str,
+                        )
+    parser.add_argument("--seq_len", type=int,
+                        )
+    parser.add_argument("--genome", type=str, default="mm10",
+                        )
+    parser.add_argument("--genome_fasta", type=str,
+                        )
+    parser.add_argument("--regions", nargs="+", type=parse_region,
+                        )
+    parser.add_argument("--growth_model", type=str, default="exponential",
+                        )
+    parser.add_argument("--coalescent_model", type=str, default="hudson",
+                        )
+    parser.add_argument("--time", type=int, default=30,
+                        )
+    parser.add_argument("--N0", type=int, default=100,
+                        )
+    parser.add_argument("--Nt", type=int, default=10000,
+                        )
+    parser.add_argument("--seed", type=float,
+                        )
+    parser.add_argument("--name", type=str, default="cybermutator",
+                        )
+    parser.add_argument("--Mu", type=float, default=2e-6,
+                        )
+    parser.add_argument("--sbs_signatures", nargs="+", default=["cybermutator/SBS/v3.3_SBS10a_PROFILE.txt", "cybermutator/SBS/v3.3_SBS10b_PROFILE.txt"],
+                        )
+    parser.add_argument("--sbs_weights", nargs="+", type=float, default=[0.5, 0.5],
+                        )
+    parser.add_argument("--outdir", type=str, required=True,
+                        )
     args = parser.parse_args()
 
     if args.seed is None:
@@ -148,7 +183,7 @@ def main():
     else:
         raise ValueError("Must provide either --sequence or --regions + --genome_fasta or --seq_len")
 
-    ts = msprime.sim_ancestry(samples=25, sequence_length=len(sequence), recombination_rate=0, ploidy=2, random_seed=args.seed)
+    ts = msprime.sim_ancestry(samples=args.cells, sequence_length=len(sequence), recombination_rate=0, ploidy=2, random_seed=args.seed)
     ts, trinucs = add_context(ts, sequence)
     transition_matrix = load_signatures(args.sbs_signatures, args.sbs_weights, args.genome)
     ts_mut = simulate_mutations(ts, sequence, trinucs, transition_matrix, mu=args.Mu)
