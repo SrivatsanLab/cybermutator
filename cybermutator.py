@@ -90,7 +90,11 @@ def simulate_mutations(ts, sequence, trinucs, transition_matrix, mu):
                 site_index = np.random.choice(list(trinucs.keys()), p=site_probs / seq_prob)
                 mut_probs = transition_matrix.loc[trinucs[site_index]]
                 der = np.random.choice(mut_probs.index, p=mut_probs / mut_probs.sum())
-                tables.mutations.add_row(site=site_index, node=node, derived_state=der[1])
+                
+    mutations.sort(key=lambda x: (x[0], -ts.node(x[1]).time))
+    tables.mutations.clear()
+    for site, node, derived in mutations:
+        tables.mutations.add_row(site=site, node=node, derived_state=derived)
     return tables.tree_sequence()
 
 def compute_VAF(ts):
