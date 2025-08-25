@@ -181,7 +181,7 @@ def main():
     elif args.regions and args.genome_fasta:
         sequence, coordmap = load_reference_sequence(args.genome_fasta, args.regions)
     elif args.seq_len:
-        p = probs.get(args.genome, [0.25]*4)
+        p = probs[args.genome]
         sequence = "".join(np.random.choice(nucleotides, p=p, size=args.seq_len + 2))
     else:
         raise ValueError("Must provide either --sequence or --regions + --genome_fasta or --seq_len")
