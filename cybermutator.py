@@ -171,7 +171,7 @@ def main():
         args.seed = time.time()
 
     if not os.path.exists(args.outdir):
-        os.makedir(args.outdir)
+        os.makedirs(args.outdir)
 
     nucleotides = list("ACGT")
     probs = {"mm10": [0.21, 0.21, 0.29, 0.29]}  # default GC content
