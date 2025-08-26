@@ -120,7 +120,7 @@ def compute_VAF(ts, trinucs, coordmap = None):
         if coordmap:
             pos = var.site.position
             anc = trinucs[pos]
-            site = f'{coordmap[pos][0]}:{coordmap[pos][1]}' #if coordmap provided, include genomic coordinates in output rather than arbitrary index
+            site = f'{coordmap[int(pos)][0]}:{coordmap[int(pos)][1]}' #if coordmap provided, include genomic coordinates in output rather than arbitrary index
         else:
             site = var.site.position
             anc = trinucs[site]
