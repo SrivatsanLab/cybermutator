@@ -30,14 +30,13 @@ def load_reference_sequence(fasta_path: str, regions: List[GenomicRegion], min_c
     ref = pysam.FastaFile(fasta_path)
     sequence_parts = []
     coord_map = []
+    regions = [parse_region(reg) for reg in regions]
     for region in regions:
         seq = ref.fetch(region.chrom, region.start, region.end).upper()
         sequence_parts.append(seq)
         coord_map.extend((region.chrom, i) for i in range(region.start, region.end))
     full_sequence = "".join(sequence_parts)
     ref.close()
-    if len(full_sequence) != len(coord_map):
-        raise ValueError("Length mismatch between sequence and coordinate map.")
     return full_sequence, coord_map
 
 def load_signatures(paths: List[str], weights: List[float], genome: str) -> pd.DataFrame:
@@ -70,8 +69,8 @@ def add_context(ts, sequence):
         context = sequence[i - 1:i + 2]
         if context[1] in 'GA':
             context = str(Seq(context).complement())
-        trinucs[i] = context
-        tables.sites.add_row(position=i, ancestral_state=context[1])
+        trinucs[i-1] = context
+        tables.sites.add_row(position=i-1, ancestral_state=context)
     return tables.tree_sequence(), trinucs
 
 def simulate_mutations(ts, sequence, trinucs, transition_matrix, mu):
@@ -89,7 +88,11 @@ def simulate_mutations(ts, sequence, trinucs, transition_matrix, mu):
             for _ in range(n):
                 site_index = np.random.choice(list(trinucs.keys()), p=site_probs / seq_prob)
                 mut_probs = transition_matrix.loc[trinucs[site_index]]
+                mut_probs = mut_probs[mut_probs > 0]  # filter zero-prob alleles
+                if mut_probs.empty:
+                    continue  # no valid mutations from this context
                 der = np.random.choice(mut_probs.index, p=mut_probs / mut_probs.sum())
+                mutations.append((site_index, node, der))
                 
     mutations.sort(key=lambda x: (x[0], -ts.node(x[1]).time))
     tables.mutations.clear()
@@ -97,17 +100,22 @@ def simulate_mutations(ts, sequence, trinucs, transition_matrix, mu):
         tables.mutations.add_row(site=site, node=node, derived_state=derived)
     return tables.tree_sequence()
 
-def compute_VAF(ts):
+def compute_VAF(ts, trinucs):
     records = []
-    for var in ts.variants():
+    for n,var in enumerate(ts.variants()):
         site = var.site.position
-        anc = var.site.ancestral_state
+        anc = trinucs[site] #??
         allele_counts = np.bincount(var.genotypes, minlength=len(var.alleles))
         total_alleles = allele_counts.sum()
         der = [a for a in var.alleles if a != anc]
+        # print(anc, der)
         if len(der) == 0:
             continue
-        else: 
+        else:
+            # print(site)
+            # print(f'var.site.ancestral_state: {var.site.ancestral_state}')
+            # print(f'trinucs[site]: {trinucs[site]}')
+            
             for a in der:
                 der_count = np.sum(var.genotypes == var.alleles.index(a))
                 anc_count = total_alleles - der_count
@@ -143,7 +151,7 @@ def main():
                         help='Length of randomly generated sequence to simulate mutations on.')
     parser.add_argument("--genome", type=str, default="mm10",
                         help='Specify genome to generate random sequence with appropriate GC content. Currently only mm10 is supported')
-    parser.add_argument("--genome_fasta", type=str,
+    parser.add_argument("--genome_fasta", type=str, default='/shared/biodata/reference/iGenomes/Mus_musculus/UCSC/mm10/Sequence/WholeGenomeFasta/genome.fa',
                         help='Path to indexed fasta to query ')
     parser.add_argument("--regions", nargs="+", type=parse_region,
                         help='region or list of regions (separated by a space) of provided reference genome to simulate mutations within, in the following format: chr1:200-300')
@@ -153,9 +161,7 @@ def main():
                         help='Model provided to msprime.sim_ancestry')
     parser.add_argument("--time", type=int, default=30,
                         help='Number of simulated generations / cell divisions')
-    parser.add_argument("--N0", type=int, default=1,
-                        help='Founder population size (use 1 to simulate development from a single cell zygote)')
-    parser.add_argument("--Nt", type=int, default=10000,
+    parser.add_argument("--Ne", type=int, default=1e6,
                         help='Population size at time of simulated sampling.')
     parser.add_argument("--seed", type=float,
                         help='seed for random number generation. Defaults to current time if none provided.')
@@ -189,6 +195,26 @@ def main():
         sequence = "".join(np.random.choice(nucleotides, p=p, size=args.seq_len + 2))
     else:
         raise ValueError("Must provide either --sequence or --regions + --genome_fasta or --seq_len")
+
+    growth_rate = np.log(2)
+
+    demography = msprime.Demography()
+    demography.add_population(
+        initial_size=args.Ne,
+        growth_rate=growth_rate
+    )
+    ts = msprime.sim_ancestry(
+        samples=args.cells,
+        demography=demography,
+        sequence_length=len(sequence),
+        recombination_rate=0,
+        ploidy=2,
+        random_seed=seed
+    )
+
+    ts, trinucs = add_context(ts, sequence)
+    ts_mut = simulate_mutations(ts, sequence, trinucs, transition_matrix, mu=2e-6)
+
 
     ts = msprime.sim_ancestry(samples=args.cells, sequence_length=len(sequence), recombination_rate=0, ploidy=2, random_seed=args.seed)
     ts, trinucs = add_context(ts, sequence)
