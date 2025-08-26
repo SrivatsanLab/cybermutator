@@ -14,6 +14,7 @@ import time
 ## TODO:
 #       - add additional SBS signatures
 #       - test with multiple SBS signatures
+#       - genomic coordinates in VAF dataframe
 
 @dataclass
 class GenomicRegion:
@@ -100,11 +101,29 @@ def simulate_mutations(ts, sequence, trinucs, transition_matrix, mu):
         tables.mutations.add_row(site=site, node=node, derived_state=derived)
     return tables.tree_sequence()
 
-def compute_VAF(ts, trinucs):
+def compute_VAF(ts, trinucs, coordmap = None):
+    '''
+    Computes variant allele frequency of all simulated mutations.
+    Returns a dataframe with columns:
+    "site", "anc", "anc_count", "der", "der_count", "VAF"
+    where 
+    site = numerical position in provided or randomly generated sequence, or genomic coordinates in reference genome
+    anc = "ancestral" allele - the allele at that site in the sequence or reference genome
+    anc_count = count of ancestral alleles in the simulation
+    der = derived allele - the simulated mutation
+    der_count = count of derived allele in the simulation 
+    VAF = der_count / (count of all alleles at that site)
+    '''
+
     records = []
     for n,var in enumerate(ts.variants()):
-        site = var.site.position
-        anc = trinucs[site] #??
+        if coordmap:
+            pos = var.site.position
+            anc = trinucs[pos]
+            site = f'{coordmap[0][0]}:{coordmap[0][1]}' #if coordmap provided, include genomic coordinates in output rather than arbitrary index
+        else:
+            site = var.site.position
+            anc = trinucs[site]
         allele_counts = np.bincount(var.genotypes, minlength=len(var.alleles))
         total_alleles = allele_counts.sum()
         der = [a for a in var.alleles if a != anc]
@@ -112,10 +131,6 @@ def compute_VAF(ts, trinucs):
         if len(der) == 0:
             continue
         else:
-            # print(site)
-            # print(f'var.site.ancestral_state: {var.site.ancestral_state}')
-            # print(f'trinucs[site]: {trinucs[site]}')
-            
             for a in der:
                 der_count = np.sum(var.genotypes == var.alleles.index(a))
                 anc_count = total_alleles - der_count
@@ -133,13 +148,17 @@ def compute_VAF(ts, trinucs):
         columns=["site", "anc", "anc_count", "der", "der_count", "VAF"]
     )
 
-def plot_VAF(vafs, outpath):
+def plot_VAF(vafs, bins=25, outpath=None):
+    '''
+    Takes the VAF column of the dataframe from compute_VAF and plots a histogram.
+    '''
     plt.figure()
-    plt.hist(vafs, bins=25, range=(0, 1), edgecolor='black')
+    plt.hist(vafs, bins=bins, range=(0, 1), edgecolor='black')
     plt.xlabel("Variant Allele Frequency (VAF)")
     plt.ylabel("Count")
     plt.tight_layout()
-    plt.savefig(outpath)
+    if outpath:
+        plt.savefig(outpath)
 
 def main():
     parser = argparse.ArgumentParser(description='Create your own cybermutator to simulate a hypermutator.')
@@ -175,6 +194,8 @@ def main():
                         help='Directory for outputs. Will be created if it does not exist')
     parser.add_argument("--name", type=str, default="cybermutator",
                         help='name for your simulation, will be the prefix of output files.')
+    parser.add_argument("--save", type=bool, default=True,
+                        help='whether to save outputs')
     args = parser.parse_args()
 
     if args.seed is None:
@@ -215,17 +236,21 @@ def main():
     ts, trinucs = add_context(ts, sequence)
     ts_mut = simulate_mutations(ts, sequence, trinucs, transition_matrix, mu=2e-6)
 
-
     ts = msprime.sim_ancestry(samples=args.cells, sequence_length=len(sequence), recombination_rate=0, ploidy=2, random_seed=args.seed)
     ts, trinucs = add_context(ts, sequence)
     transition_matrix = load_signatures(args.sbs_signatures, args.sbs_weights, args.genome)
     ts_mut = simulate_mutations(ts, sequence, trinucs, transition_matrix, mu=args.Mu)
 
-    vaf_df = compute_VAF(ts_mut)
-    vaf_csv_path = os.path.join(args.outdir, f"{args.name}.csv")
-    vaf_png_path = os.path.join(args.outdir, f"{args.name}.png")
-    vaf_df.to_csv(vaf_csv_path, index=False)
-    plot_VAF(vaf_df["VAF"], vaf_png_path)
+    if args.regions != None:
+        vaf_df = compute_VAF(ts_mut, coordmap)
+    else:
+        vaf_df = compute_VAF(ts_mut)
+
+    if args.save == True:
+        vaf_csv_path = os.path.join(args.outdir, f"{args.name}.csv")
+        vaf_png_path = os.path.join(args.outdir, f"{args.name}.png")
+        vaf_df.to_csv(vaf_csv_path, index=False)
+        plot_VAF(vaf_df["VAF"], vaf_png_path)
 
 if __name__ == "__main__":
     main()
