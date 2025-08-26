@@ -101,7 +101,7 @@ def simulate_mutations(ts, sequence, trinucs, transition_matrix, mu):
         tables.mutations.add_row(site=site, node=node, derived_state=derived)
     return tables.tree_sequence()
 
-def compute_VAF(rep=1, ts, trinucs, coordmap = None):
+def compute_VAF(ts, trinucs, rep=1, coordmap = None):
     '''
     Computes variant allele frequency of all simulated mutations.
     Returns a dataframe with columns:
@@ -241,9 +241,9 @@ def main():
         ts_mut = simulate_mutations(ts, sequence, trinucs, transition_matrix, mu=2e-6)
 
         if args.regions != None:
-            vaf_df = compute_VAF(rep, ts_mut, trinucs, coordmap)
+            vaf_df = compute_VAF(ts_mut, trinucs, coordmap, rep=rep)
         else:
-            vaf_df = compute_VAF(rep, ts_mut, trinucs)
+            vaf_df = compute_VAF(rep, ts_mut, trinucs, rep=rep)
 
     if args.save == True:
         vaf_csv_path = os.path.join(args.outdir, f"{args.name}.csv")
