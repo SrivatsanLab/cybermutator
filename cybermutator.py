@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import List, Tuple
 import argparse
 import os
-import time
+from tqdm import tqdm
 
 ## TODO:
 #       - add additional SBS signatures
