@@ -234,12 +234,8 @@ def main():
     )
 
     ts, trinucs = add_context(ts, sequence)
-    ts_mut = simulate_mutations(ts, sequence, trinucs, transition_matrix, mu=2e-6)
-
-    ts = msprime.sim_ancestry(samples=args.cells, sequence_length=len(sequence), recombination_rate=0, ploidy=2, random_seed=args.seed)
-    ts, trinucs = add_context(ts, sequence)
     transition_matrix = load_signatures(args.sbs_signatures, args.sbs_weights, args.genome)
-    ts_mut = simulate_mutations(ts, sequence, trinucs, transition_matrix, mu=args.Mu)
+    ts_mut = simulate_mutations(ts, sequence, trinucs, transition_matrix, mu=2e-6)
 
     if args.regions != None:
         vaf_df = compute_VAF(ts_mut, coordmap)
