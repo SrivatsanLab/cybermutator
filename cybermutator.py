@@ -101,12 +101,13 @@ def simulate_mutations(ts, sequence, trinucs, transition_matrix, mu):
         tables.mutations.add_row(site=site, node=node, derived_state=derived)
     return tables.tree_sequence()
 
-def compute_VAF(ts, trinucs, coordmap = None):
+def compute_VAF(ts, trinucs, rep, coordmap = None):
     '''
     Computes variant allele frequency of all simulated mutations.
     Returns a dataframe with columns:
     "site", "anc", "anc_count", "der", "der_count", "VAF"
     where 
+    rep = simulation replicate
     site = numerical position in provided or randomly generated sequence, or genomic coordinates in reference genome
     anc = "ancestral" allele - the allele at that site in the sequence or reference genome
     anc_count = count of ancestral alleles in the simulation
@@ -136,6 +137,7 @@ def compute_VAF(ts, trinucs, coordmap = None):
                 anc_count = total_alleles - der_count
                 vaf = der_count / total_alleles
                 records.append([
+                    rep,
                     site,
                     anc,
                     anc_count,
@@ -145,7 +147,7 @@ def compute_VAF(ts, trinucs, coordmap = None):
                 ])
     return pd.DataFrame(
         records,
-        columns=["site", "anc", "anc_count", "der", "der_count", "VAF"]
+        columns=["rep", "site", "anc", "anc_count", "der", "der_count", "VAF"]
     )
 
 def plot_VAF(vafs, bins=25, outpath=None):
@@ -164,6 +166,8 @@ def main():
     parser = argparse.ArgumentParser(description='Create your own cybermutator to simulate a hypermutator.')
     parser.add_argument("--cells", type=int, default=1000,
                         help='The number of cells in your simulated sample')
+    parser.add_argument("--reps", type=int, default=100,
+                        help='Number of simulation replicates')
     parser.add_argument("--sequence", type=str,
                         help='Optional: the sequence you would like to simulate mutations on. Leave empty to randomly generate a sequence, or query a ref genome for a sequence.')
     parser.add_argument("--seq_len", type=int,
@@ -182,8 +186,6 @@ def main():
                         help='Number of simulated generations / cell divisions')
     parser.add_argument("--Ne", type=int, default=1e6,
                         help='Population size at time of simulated sampling.')
-    parser.add_argument("--seed", type=float,
-                        help='seed for random number generation. Defaults to current time if none provided.')
     parser.add_argument("--Mu", type=float, default=2e-6,
                         help='Overall mutation rate.')
     parser.add_argument("--sbs_signatures", nargs="+", default=["cybermutator/SBS/v3.3_SBS10a_PROFILE.txt", "cybermutator/SBS/v3.3_SBS10b_PROFILE.txt"],
@@ -230,23 +232,24 @@ def main():
         sequence_length=len(sequence),
         recombination_rate=0,
         ploidy=2,
-        random_seed=seed
     )
 
-    ts, trinucs = add_context(ts, sequence)
-    transition_matrix = load_signatures(args.sbs_signatures, args.sbs_weights, args.genome)
-    ts_mut = simulate_mutations(ts, sequence, trinucs, transition_matrix, mu=2e-6)
+    vafs = []
+    for rep in tqdm(range(0,args.reps)):
+        ts, trinucs = add_context(ts, sequence)
+        transition_matrix = load_signatures(args.sbs_signatures, args.sbs_weights, args.genome)
+        ts_mut = simulate_mutations(ts, sequence, trinucs, transition_matrix, mu=2e-6)
 
-    if args.regions != None:
-        vaf_df = compute_VAF(ts_mut, coordmap)
-    else:
-        vaf_df = compute_VAF(ts_mut)
+        if args.regions != None:
+            vaf_df = compute_VAF(rep, ts_mut, coordmap)
+        else:
+            vaf_df = compute_VAF(rep, ts_mut)
 
     if args.save == True:
         vaf_csv_path = os.path.join(args.outdir, f"{args.name}.csv")
         vaf_png_path = os.path.join(args.outdir, f"{args.name}.png")
-        vaf_df.to_csv(vaf_csv_path, index=False)
-        plot_VAF(vaf_df["VAF"], vaf_png_path)
+        vafs.to_csv(vaf_csv_path, index=False)
+        plot_VAF(vafs["VAF"], vaf_png_path)
 
 if __name__ == "__main__":
     main()
