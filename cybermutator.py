@@ -105,7 +105,7 @@ def compute_VAF(ts, trinucs, rep=1, coordmap = None):
     '''
     Computes variant allele frequency of all simulated mutations.
     Returns a dataframe with columns:
-    "site", "anc", "anc_count", "der", "der_count", "VAF"
+    "rep", "site", "anc", "anc_count", "der", "der_count", "VAF"
     where 
     rep = simulation replicate
     site = numerical position in provided or randomly generated sequence, or genomic coordinates in reference genome
@@ -241,9 +241,9 @@ def main():
         ts_mut = simulate_mutations(ts, sequence, trinucs, transition_matrix, mu=2e-6)
 
         if args.regions != None:
-            vaf_df = compute_VAF(ts_mut, trinucs, coordmap, rep=rep)
+            vaf_df = compute_VAF(ts_mut, trinucs, coordmap=coordmap, rep=rep)
         else:
-            vaf_df = compute_VAF(rep, ts_mut, trinucs, rep=rep)
+            vaf_df = compute_VAF(ts_mut, trinucs, rep=r)
 
     if args.save == True:
         vaf_csv_path = os.path.join(args.outdir, f"{args.name}.csv")
