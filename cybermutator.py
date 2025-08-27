@@ -46,20 +46,29 @@ def load_signatures(paths: List[str], weights: List[float], genome: str) -> pd.D
     if not np.isclose(sum(weights), 1.0):
         raise ValueError("Signature weights must sum to 1.0")
     combined = None
+
     for path, weight in zip(paths, weights):
+        print(path, weight)
+        # Infer signature name from filename (e.g., "v3.3_SBS10a_PROFILE.txt" → "SBS10a")
+        sig_name = f'{os.path.basename(path).split("_")[1]}_{genome}'  # robust if formatted as SBS10a_PROFILE.txt
         df = pd.read_csv(path, sep="\t", index_col=0)
-        df[['anc', 'der']] = df.apply(lambda row: pd.Series([f'{row.name[0]}{row.name[2]}{row.name[-1]}',
-                                                             f'{row.name[0]}{row.name[4]}{row.name[-1]}']), axis=1)
-        sig_col = [col for col in df.columns if col.startswith("SBS")][-1]
-        sig_matrix = df.pivot_table(index='anc', columns='der', values=sig_col, fill_value=0)
-        sig_matrix = sig_matrix.reindex(index=sig_matrix.index.union(sig_matrix.columns),
-                                        columns=sig_matrix.index.union(sig_matrix.columns),
-                                        fill_value=0)
+
+        # Extract ancestral and derived context (e.g., T[C>T]T → anc: TCT, der: TAT)
+        df[['anc', 'der']] = df.apply(lambda row: pd.Series([
+            f'{row.name[0]}{row.name[2]}{row.name[-1]}',  # ancestral trinuc
+            f'{row.name[0]}{row.name[4]}{row.name[-1]}'   # derived trinuc
+        ]), axis=1)
+
+        # Pivot to context × mutation matrix
+        sig_matrix = df.pivot_table(index='anc', columns='der', values=sig_name, fill_value=0)
+
         sig_matrix *= weight
+
         if combined is None:
             combined = sig_matrix
         else:
             combined = combined.add(sig_matrix, fill_value=0)
+
     return combined
 
 def add_context(ts, sequence):
@@ -226,16 +235,16 @@ def main():
         initial_size=args.Ne,
         growth_rate=growth_rate
     )
-    ts = msprime.sim_ancestry(
-        samples=args.cells,
-        demography=demography,
-        sequence_length=len(sequence),
-        recombination_rate=0,
-        ploidy=2,
-    )
 
     vafs = []
     for rep in tqdm(range(0,args.reps)):
+        ts = msprime.sim_ancestry(
+            samples=args.cells,
+            demography=demography,
+            sequence_length=len(sequence),
+            recombination_rate=0,
+            ploidy=2,
+        )
         ts, trinucs = add_context(ts, sequence)
         transition_matrix = load_signatures(args.sbs_signatures, args.sbs_weights, args.genome)
         ts_mut = simulate_mutations(ts, sequence, trinucs, transition_matrix, mu=2e-6)
@@ -244,6 +253,9 @@ def main():
             vaf_df = compute_VAF(ts_mut, trinucs, coordmap=coordmap, rep=rep)
         else:
             vaf_df = compute_VAF(ts_mut, trinucs, rep=r)
+        vafs.append(vaf_df)
+
+    vafs = pd.concat(vafs)
 
     if args.save == True:
         vaf_csv_path = os.path.join(args.outdir, f"{args.name}.csv")
