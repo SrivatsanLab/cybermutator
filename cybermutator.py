@@ -3,6 +3,7 @@ import msprime
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 import pysam
 from Bio.Seq import Seq
 from dataclasses import dataclass
@@ -10,6 +11,7 @@ from typing import List, Tuple
 import argparse
 import os
 from tqdm import tqdm
+sns.set_theme(style="ticks")
 
 ## TODO:
 #       - add additional SBS signatures
@@ -159,17 +161,40 @@ def compute_VAF(ts, trinucs, rep=1, coordmap = None):
         columns=["rep", "site", "anc", "anc_count", "der", "der_count", "VAF"]
     )
 
-def plot_VAF(vafs, bins=25, outpath=None):
-    '''
-    Takes the VAF column of the dataframe from compute_VAF and plots a histogram.
-    '''
-    plt.figure()
-    plt.hist(vafs, bins=bins, range=(0, 1), edgecolor='black')
-    plt.xlabel("Variant Allele Frequency (VAF)")
-    plt.ylabel("Count")
-    plt.tight_layout()
+# def plot_VAF(vafs, bins=25, outpath=None):
+#     '''
+#     Takes the VAF column of the dataframe from compute_VAF and plots a histogram.
+#     '''
+#     plt.figure()
+#     plt.hist(vafs, bins=bins, range=(0, 1), edgecolor='black')
+#     plt.xlabel("Variant Allele Frequency (VAF)")
+#     plt.ylabel("Count")
+#     plt.tight_layout()
+#     if outpath:
+#         plt.savefig(outpath)
+
+def plot_VAF(vafs, outpath=None):
+    f, ax = plt.subplots(figsize=(7, 5))
+    sns.despine(f)
+    sns.histplot(vafs['VAF'], 
+                # binrange=(0,0.1), 
+                log_scale=(True,False),
+                bins=50, ax=ax)
+    plt.xlabel("VAF", fontweight='bold', fontsize=16)
+    plt.ylabel("Count of Sites", fontweight='bold', fontsize=16)
     if outpath:
-        plt.savefig(outpath)
+        f.savefig(outpath, dpi=600, bbox_inches='tight')
+
+def plot_counts(mut_counts, outpath=None):
+
+    f, ax = plt.subplots(figsize=(7, 5))
+    sns.despine(f)
+    sns.histplot(mut_counts, bins=max(mut_counts), ax=ax)
+    # ax.set_yscale('log')
+    plt.xlabel("Count of Mutations", fontweight='bold', fontsize=16)
+    plt.ylabel("Count of Replicates", fontweight='bold', fontsize=16)
+    if outpath:
+        f.savefig(outpath, dpi=600, bbox_inches='tight')
 
 def main():
     parser = argparse.ArgumentParser(description='Create your own cybermutator to simulate a hypermutator.')
@@ -259,9 +284,11 @@ def main():
 
     if args.save == True:
         vaf_csv_path = os.path.join(args.outdir, f"{args.name}.csv")
-        vaf_png_path = os.path.join(args.outdir, f"{args.name}.png")
+        vaf_png_path = os.path.join(args.outdir, f"{args.name}_vaf.png")
+        mut_png_path = os.path.join(args.outdir, f"{args.name}_mut.png")
         vafs.to_csv(vaf_csv_path, index=False)
-        plot_VAF(vafs["VAF"], vaf_png_path)
+        plot_VAF(vafs["VAF"], outpath=vaf_png_path)
+        plot_counts(vafs['rep'].value_counts(), outpath=mut_png_path)
 
 if __name__ == "__main__":
     main()
