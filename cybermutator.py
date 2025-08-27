@@ -334,9 +334,9 @@ def main():
                         help='Population size at time of simulated sampling.')
     parser.add_argument("--Mu", type=float, default=2e-6,
                         help='Overall mutation rate.')
-    parser.add_argument("--sbs_signatures", nargs="+", default=["cybermutator/SBS/v3.3_SBS10a_PROFILE.txt", "cybermutator/SBS/v3.3_SBS10b_PROFILE.txt"],
-                        help='Path or list of paths to COSMIC SBS signatures in default tsv format. The two PolE-P286R signatures (SBS10a and SBS10b) are provided.')
-    parser.add_argument("--sbs_weights", nargs="+", type=float, default=[0.5, 0.5],
+    parser.add_argument("--sbs_signatures", nargs="+", default=["cybermutator/SBS/v3.3_SBS5_PROFILE.txt","cybermutator/SBS/v3.3_SBS10a_PROFILE.txt", "cybermutator/SBS/v3.3_SBS10b_PROFILE.txt"],
+                        help='Path or list of paths to COSMIC SBS signatures in default tsv format. The two PolE-P286R signatures (SBS10a and SBS10b) and SBS5 are provided.')
+    parser.add_argument("--sbs_weights", nargs="+", type=float, default=[0.5, 0.25, 0.25],
                         help='SBS signature weights, used if multiple signatures provided.')
     parser.add_argument("--outdir", type=str, default='cybermutator_results',
                         help='Directory for outputs. Will be created if it does not exist')
