@@ -196,6 +196,118 @@ def plot_counts(mut_counts, outpath=None):
     if outpath:
         f.savefig(outpath, dpi=600, bbox_inches='tight')
 
+def get_spectra(vafs):
+    types = ['ACA>AAA', 'ACC>AAC', 'ACG>AAG', 'ACT>AAT', 'ACA>AGA', 'ACC>AGC',
+             'ACG>AGG', 'ACT>AGT', 'ACA>ATA', 'ACC>ATC', 'ACG>ATG', 'ACT>ATT',
+             'ATA>AAA', 'ATC>AAC', 'ATG>AAG', 'ATT>AAT', 'ATA>ACA', 'ATC>ACC',
+             'ATG>ACG', 'ATT>ACT', 'ATA>AGA', 'ATC>AGC', 'ATG>AGG', 'ATT>AGT',
+             'CCA>CAA', 'CCC>CAC', 'CCG>CAG', 'CCT>CAT', 'CCA>CGA', 'CCC>CGC',
+             'CCG>CGG', 'CCT>CGT', 'CCA>CTA', 'CCC>CTC', 'CCG>CTG', 'CCT>CTT',
+             'CTA>CAA', 'CTC>CAC', 'CTG>CAG', 'CTT>CAT', 'CTA>CCA', 'CTC>CCC',
+             'CTG>CCG', 'CTT>CCT', 'CTA>CGA', 'CTC>CGC', 'CTG>CGG', 'CTT>CGT',
+             'GCA>GAA', 'GCC>GAC', 'GCG>GAG', 'GCT>GAT', 'GCA>GGA', 'GCC>GGC',
+             'GCG>GGG', 'GCT>GGT', 'GCA>GTA', 'GCC>GTC', 'GCG>GTG', 'GCT>GTT',
+             'GTA>GAA', 'GTC>GAC', 'GTG>GAG', 'GTT>GAT', 'GTA>GCA', 'GTC>GCC',
+             'GTG>GCG', 'GTT>GCT', 'GTA>GGA', 'GTC>GGC', 'GTG>GGG', 'GTT>GGT',
+             'TCA>TAA', 'TCC>TAC', 'TCG>TAG', 'TCT>TAT', 'TCA>TGA', 'TCC>TGC',
+             'TCG>TGG', 'TCT>TGT', 'TCA>TTA', 'TCC>TTC', 'TCG>TTG', 'TCT>TTT',
+             'TTA>TAA', 'TTC>TAC', 'TTG>TAG', 'TTT>TAT', 'TTA>TCA', 'TTC>TCC',
+             'TTG>TCG', 'TTT>TCT', 'TTA>TGA', 'TTC>TGC', 'TTG>TGG', 'TTT>TGT']
+    
+    vafs['type']=vafs['anc']+'>'+vafs['der']
+    spectra = vafs['type'].value_counts()
+    spectra = spectra.reindex(types, fill_value=0).to_frame(name="count")
+    spectra = spectra.T
+    return spectra
+
+def standardize_context(context):
+    ref = context[1]
+    if ref in {"A", "G"}:
+        # Reverse complement both sides
+        tri_from, tri_to = context.split(">")
+        tri_from_c = str(Seq(seq).complement())
+        tri_to_c = str(Seq(seq).complement())
+        return f"{tri_from_c}>{tri_to_c}"
+    else:
+        return context
+
+def plot_spectra(spectra, outpath=None):
+
+    spectra.columns = [standardize_context(mut) for mut in spectra.columns.to_list()]
+    
+    titles = [
+        'C>A',
+        'C>G',
+        'C>T',
+        'T>A',
+        'T>C',
+        'T>G'
+    ]
+    mut_types = {t:[] for t in titles}
+
+    for mut in spectra.columns.to_list():
+        # print(mut)
+        # C/G mutations
+        if mut[1]=='C' and mut[-2]=='A':
+            mut_types['C>A'].append(mut)
+        elif mut[1]=='C' and mut[-2]=='G':
+            mut_types['C>G'].append(mut)
+        elif mut[1]=='C' and mut[-2]=='T':
+            mut_types['C>T'].append(mut)
+
+        # A/T mutations
+        elif mut[1]=='T' and mut[-2]=='A':
+            mut_types['T>A'].append(mut)
+        elif mut[1]=='T' and mut[-2]=='C':
+            mut_types['T>C'].append(mut)
+        elif mut[1]=='T' and mut[-2]=='G':
+            mut_types['T>G'].append(mut)
+
+        hex_cols = [
+            '#438CFD',
+            '#01182E',
+            '#ff1A5E',
+            '#E6E6E6',
+            '#80F15D',
+            '#FFDB58'
+        ]
+
+    data = spectra.iloc[0]
+    fig, axes = plt.subplots(1,6,figsize=(24,6), sharey=True, gridspec_kw={'wspace': 0})
+    for i, ax in enumerate(axes):
+        x = mut_types[titles[i]]
+        ax.bar(x, data[x], color=hex_cols[i])
+        ax.set_title(f"{titles[i]}",
+                     fontweight='bold', 
+                     fontsize=16
+                    )
+        ax.set_xticklabels(x,rotation=90)
+
+        rect = patches.Rectangle(
+            (0.01, 0.95),  # Bottom left corner of the rectangle (relative to axis coordinates)
+            0.98, 0.05,     # Width and height (relative to axis coordinates)
+            transform=ax.transAxes,  # Use axis coordinates
+            color=hex_cols[i],         # Color of the patch
+            clip_on=False            # Ensure the patch extends outside the axis
+        )
+        ax.add_patch(rect)
+        ax.spines["top"].set_visible(False)
+        ax.set_ylim(max(data))
+        if i == 0:
+            # Add y-axis label only to the first subplot
+            ax.set_ylabel("Mutations", fontweight='bold', fontsize=16)
+        else:
+            # Remove the y-axis line and ticks for other subplots
+            ax.yaxis.set_visible(False)
+            ax.spines["left"].set_visible(False)
+
+    axes[0].set_ylim(0, max(data)+0.1*max(data))
+    # axes[0].set_ylim(0, 350)
+    # fig.suptitle("Spectra",fontweight='bold', fontsize=20)
+    plt.show()
+    if outpath:
+        fig.savefig(outpath, dpi=600, bbox_inches='tight')
+
 def main():
     parser = argparse.ArgumentParser(description='Create your own cybermutator to simulate a hypermutator.')
     parser.add_argument("--cells", type=int, default=1000,
@@ -281,14 +393,17 @@ def main():
         vafs.append(vaf_df)
 
     vafs = pd.concat(vafs)
+    spectra = get_spectra(vafs)
 
     if args.save == True:
         vaf_csv_path = os.path.join(args.outdir, f"{args.name}.csv")
         vaf_png_path = os.path.join(args.outdir, f"{args.name}_vaf.png")
         mut_png_path = os.path.join(args.outdir, f"{args.name}_mut.png")
+        spectra_png_path = os.path.join(args.outdir, f"{args.name}_spectra.png")
         vafs.to_csv(vaf_csv_path, index=False)
         plot_VAF(vafs["VAF"], outpath=vaf_png_path)
         plot_counts(vafs['rep'].value_counts(), outpath=mut_png_path)
+        plot_spectra(spectra, outpath=spectra_png_path)
 
 if __name__ == "__main__":
     main()
