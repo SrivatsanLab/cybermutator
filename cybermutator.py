@@ -311,39 +311,39 @@ def plot_spectra(spectra, outpath=None):
 def main():
     parser = argparse.ArgumentParser(description='Create your own cybermutator to simulate a hypermutator.')
     parser.add_argument("--cells", type=int, default=1000,
-                        help='The number of cells in your simulated sample')
+                        help='Integer. The number of cells in your simulated sample')
     parser.add_argument("--reps", type=int, default=100,
-                        help='Number of simulation replicates')
+                        help='Integer. Number of simulation replicates')
     parser.add_argument("--sequence", type=str,
                         help='Optional: the sequence you would like to simulate mutations on. Leave empty to randomly generate a sequence, or query a ref genome for a sequence.')
     parser.add_argument("--seq_len", type=int,
-                        help='Length of randomly generated sequence to simulate mutations on.')
+                        help='Integer. Length of randomly generated sequence to simulate mutations on.')
+    parser.add_argument("--new_seq_per_rep", action='store_true',
+                        help='Include flag if you want to generate a new random sequence each replicate. Overrides other seq arguments.')
     parser.add_argument("--genome", type=str, default="mm10",
                         help='Specify genome to generate random sequence with appropriate GC content. Currently only mm10 is supported')
     parser.add_argument("--genome_fasta", type=str, default='/shared/biodata/reference/iGenomes/Mus_musculus/UCSC/mm10/Sequence/WholeGenomeFasta/genome.fa',
                         help='Path to indexed fasta to query ')
     parser.add_argument("--regions", nargs="+", type=parse_region,
-                        help='region or list of regions (separated by a space) of provided reference genome to simulate mutations within, in the following format: chr1:200-300')
+                        help='region or list of regions (separated by spaces) of provided reference genome to simulate mutations within, in the following format: chr1:200-300')
     parser.add_argument("--growth_model", type=str, default="exponential",
                         help='currently only exponential is supported')
     parser.add_argument("--coalescent_model", type=str, default="hudson",
                         help='Model provided to msprime.sim_ancestry')
-    parser.add_argument("--time", type=int, default=30,
-                        help='Number of simulated generations / cell divisions')
     parser.add_argument("--Ne", type=int, default=1e6,
-                        help='Population size at time of simulated sampling.')
+                        help='Integery. Population size at time of simulated sampling.')
     parser.add_argument("--Mu", type=float, default=2e-6,
-                        help='Overall mutation rate.')
+                        help='Float. Overall mutation rate. default=2e-6')
     parser.add_argument("--sbs_signatures", nargs="+", default=["cybermutator/SBS/v3.3_SBS5_PROFILE.txt","cybermutator/SBS/v3.3_SBS10a_PROFILE.txt", "cybermutator/SBS/v3.3_SBS10b_PROFILE.txt"],
-                        help='Path or list of paths to COSMIC SBS signatures in default tsv format. The two PolE-P286R signatures (SBS10a and SBS10b) and SBS5 are provided.')
+                        help='Path or list of paths (separated by spaces) to COSMIC SBS signatures in default tsv format. The two PolE-P286R signatures (SBS10a and SBS10b) and SBS5 are provided and used by default.')
     parser.add_argument("--sbs_weights", nargs="+", type=float, default=[0.5, 0.25, 0.25],
-                        help='SBS signature weights, used if multiple signatures provided.')
+                        help='floats separated by spaces. SBS signature weights, used if multiple signatures provided.')
     parser.add_argument("--outdir", type=str, default='cybermutator_results',
                         help='Directory for outputs. Will be created if it does not exist')
     parser.add_argument("--name", type=str, default="cybermutator",
                         help='name for your simulation, will be the prefix of output files.')
     parser.add_argument("--save", type=bool, default=True,
-                        help='whether to save outputs')
+                        help='True or False. Whether to save outputs. Default = True')
     args = parser.parse_args()
 
     if args.seed is None:
@@ -365,18 +365,25 @@ def main():
     else:
         raise ValueError("Must provide either --sequence or --regions + --genome_fasta or --seq_len")
 
-    growth_rate = np.log(2)
-
-    demography = msprime.Demography()
-    demography.add_population(
-        initial_size=args.Ne,
-        growth_rate=growth_rate
-    )
+    if args.growth_model == 'exponential':
+        growth_rate = np.log(2)
+        demography = msprime.Demography()
+        demography.add_population(
+            initial_size=args.Ne,
+            growth_rate=growth_rate
+        )
 
     vafs = []
     for rep in tqdm(range(0,args.reps)):
+        if args.new_seq_per_rep:
+            if not args.seq_len:
+                raise ValueError("Must provide --seq_len with --new_seq_per_rep")
+            p = probs[args.genome]
+            sequence = "".join(np.random.choice(nucleotides, p=p, size=args.seq_len + 2))
+        
         ts = msprime.sim_ancestry(
             samples=args.cells,
+            model=args.coalescent_model,
             demography=demography,
             sequence_length=len(sequence),
             recombination_rate=0,
