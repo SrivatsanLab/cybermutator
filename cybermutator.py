@@ -334,7 +334,7 @@ def main():
                         help='currently only exponential is supported')
     parser.add_argument("--coalescent_model", type=str, default="hudson",
                         help='Model provided to msprime.sim_ancestry')
-    parser.add_argument("--Ne", type=int, default=1e6,
+    parser.add_argument("--Ne", type=float, default=1e6,
                         help='Integery. Population size at time of simulated sampling.')
     parser.add_argument("--Mu", type=float, default=2e-6,
                         help='Float. Overall mutation rate. default=2e-6')
