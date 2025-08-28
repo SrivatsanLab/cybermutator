@@ -180,8 +180,8 @@ def plot_VAF(vafs, name=None, outpath=None):
                 # binrange=(0,0.1), 
                 log_scale=(True,False),
                 bins=50, ax=ax)
-    plt.xlabel("VAF", fontweight='bold', fontsize=16)
-    plt.ylabel("Count of Sites", fontweight='bold', fontsize=16)
+    plt.xlabel("VAF", fontweight='bold', fontsize=12)
+    plt.ylabel("Count of Sites", fontweight='bold', fontsize=12)
     if name:
         plt.title(name,fontweight='bold', fontsize=12)
     if outpath:
@@ -193,8 +193,8 @@ def plot_counts(mut_counts, name=None, outpath=None):
     sns.despine(f)
     sns.histplot(mut_counts, bins=max(mut_counts), ax=ax)
     # ax.set_yscale('log')
-    plt.xlabel("Count of Mutations", fontweight='bold', fontsize=16)
-    plt.ylabel("Count of Replicates", fontweight='bold', fontsize=16)
+    plt.xlabel("Count of Mutations", fontweight='bold', fontsize=12)
+    plt.ylabel("Count of Replicates", fontweight='bold', fontsize=12)
     if name:
         plt.title(name,fontweight='bold', fontsize=12)
     if outpath:
