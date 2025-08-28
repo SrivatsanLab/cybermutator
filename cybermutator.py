@@ -183,7 +183,7 @@ def plot_VAF(vafs, name=None, outpath=None):
     plt.xlabel("VAF", fontweight='bold', fontsize=16)
     plt.ylabel("Count of Sites", fontweight='bold', fontsize=16)
     if name:
-        plt.title(name,fontweight='bold', fontsize=20)
+        plt.title(name,fontweight='bold', fontsize=12)
     if outpath:
         f.savefig(outpath, dpi=600, bbox_inches='tight')
 
@@ -196,7 +196,7 @@ def plot_counts(mut_counts, name=None, outpath=None):
     plt.xlabel("Count of Mutations", fontweight='bold', fontsize=16)
     plt.ylabel("Count of Replicates", fontweight='bold', fontsize=16)
     if name:
-        plt.title(name,fontweight='bold', fontsize=20)
+        plt.title(name,fontweight='bold', fontsize=12)
     if outpath:
         f.savefig(outpath, dpi=600, bbox_inches='tight')
 
@@ -412,9 +412,9 @@ def main():
         mut_png_path = os.path.join(args.outdir, f"{args.name}_mut.png")
         spectra_png_path = os.path.join(args.outdir, f"{args.name}_spectra.png")
         vafs.to_csv(vaf_csv_path, index=False)
-        plot_VAF(vafs["VAF"], outpath=vaf_png_path)
-        plot_counts(vafs['rep'].value_counts(), outpath=mut_png_path)
-        plot_spectra(spectra, outpath=spectra_png_path)
+        plot_VAF(vafs["VAF"], name=args.name, outpath=vaf_png_path)
+        plot_counts(vafs['rep'].value_counts(), name=args.name, outpath=mut_png_path)
+        plot_spectra(spectra, name=args.name, outpath=spectra_png_path)
 
 if __name__ == "__main__":
     main()
