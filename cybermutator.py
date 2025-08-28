@@ -350,9 +350,6 @@ def main():
                         help='True or False. Whether to save outputs. Default = True')
     args = parser.parse_args()
 
-    if args.seed is None:
-        args.seed = time.time()
-
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir)
 
