@@ -173,7 +173,7 @@ def compute_VAF(ts, trinucs, rep=1, coordmap = None):
 #     if outpath:
 #         plt.savefig(outpath)
 
-def plot_VAF(vafs, outpath=None):
+def plot_VAF(vafs, name=None, outpath=None):
     f, ax = plt.subplots(figsize=(7, 5))
     sns.despine(f)
     sns.histplot(vafs['VAF'], 
@@ -182,10 +182,12 @@ def plot_VAF(vafs, outpath=None):
                 bins=50, ax=ax)
     plt.xlabel("VAF", fontweight='bold', fontsize=16)
     plt.ylabel("Count of Sites", fontweight='bold', fontsize=16)
+    if name:
+        plt.title(name,fontweight='bold', fontsize=20)
     if outpath:
         f.savefig(outpath, dpi=600, bbox_inches='tight')
 
-def plot_counts(mut_counts, outpath=None):
+def plot_counts(mut_counts, name=None, outpath=None):
 
     f, ax = plt.subplots(figsize=(7, 5))
     sns.despine(f)
@@ -193,6 +195,8 @@ def plot_counts(mut_counts, outpath=None):
     # ax.set_yscale('log')
     plt.xlabel("Count of Mutations", fontweight='bold', fontsize=16)
     plt.ylabel("Count of Replicates", fontweight='bold', fontsize=16)
+    if name:
+        plt.title(name,fontweight='bold', fontsize=20)
     if outpath:
         f.savefig(outpath, dpi=600, bbox_inches='tight')
 
@@ -231,7 +235,7 @@ def standardize_context(context):
     else:
         return context
 
-def plot_spectra(spectra, outpath=None):
+def plot_spectra(spectra, name=None, outpath=None):
 
     spectra.columns = [standardize_context(mut) for mut in spectra.columns.to_list()]
     
@@ -303,8 +307,8 @@ def plot_spectra(spectra, outpath=None):
 
     axes[0].set_ylim(0, max(data)+0.1*max(data))
     # axes[0].set_ylim(0, 350)
-    # fig.suptitle("Spectra",fontweight='bold', fontsize=20)
-    plt.show()
+    if name:
+        fig.suptitle(name,fontweight='bold', fontsize=20)
     if outpath:
         fig.savefig(outpath, dpi=600, bbox_inches='tight')
 
