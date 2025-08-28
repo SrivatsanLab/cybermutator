@@ -310,8 +310,8 @@ def plot_spectra(spectra, outpath=None):
 
 def main():
     parser = argparse.ArgumentParser(description='Create your own cybermutator to simulate a hypermutator.')
-    parser.add_argument("--cells", type=int, default=1000,
-                        help='Integer. The number of cells in your simulated sample')
+    parser.add_argument("--cells", type=float, default=1000,
+                        help='Float. The number of cells in your simulated sample')
     parser.add_argument("--reps", type=int, default=100,
                         help='Integer. Number of simulation replicates')
     parser.add_argument("--sequence", type=str,
