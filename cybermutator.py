@@ -397,7 +397,7 @@ def main():
         if args.regions != None:
             vaf_df = compute_VAF(ts_mut, trinucs, coordmap=coordmap, rep=rep)
         else:
-            vaf_df = compute_VAF(ts_mut, trinucs, rep=r)
+            vaf_df = compute_VAF(ts_mut, trinucs, rep=rep)
         vafs.append(vaf_df)
 
     vafs = pd.concat(vafs)
