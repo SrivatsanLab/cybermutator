@@ -3,6 +3,7 @@ import msprime
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import seaborn as sns
 import pysam
 from Bio.Seq import Seq
@@ -50,7 +51,7 @@ def load_signatures(paths: List[str], weights: List[float], genome: str) -> pd.D
     combined = None
 
     for path, weight in zip(paths, weights):
-        print(path, weight)
+        # print(path, weight)
         # Infer signature name from filename (e.g., "v3.3_SBS10a_PROFILE.txt" → "SBS10a")
         sig_name = f'{os.path.basename(path).split("_")[1]}_{genome}'  # robust if formatted as SBS10a_PROFILE.txt
         df = pd.read_csv(path, sep="\t", index_col=0)
@@ -409,7 +410,7 @@ def main():
         mut_png_path = os.path.join(args.outdir, f"{args.name}_mut.png")
         spectra_png_path = os.path.join(args.outdir, f"{args.name}_spectra.png")
         vafs.to_csv(vaf_csv_path, index=False)
-        plot_VAF(vafs["VAF"], name=args.name, outpath=vaf_png_path)
+        plot_VAF(vafs, name=args.name, outpath=vaf_png_path)
         plot_counts(vafs['rep'].value_counts(), name=args.name, outpath=mut_png_path)
         plot_spectra(spectra, name=args.name, outpath=spectra_png_path)
 
